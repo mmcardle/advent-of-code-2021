@@ -20,7 +20,6 @@ class Power:
 
 
 def calculate_gamma_and_epsilon(test_data):
-    
     zipped = list(zip(*test_data))
     gamma = ""
     epsilon = ""
@@ -43,7 +42,7 @@ def calculate_oxygen(data):
         if len(data) == 1:
             return int(data[0], 2)
 
-    raise Exception("Could not find scrubber")
+    raise Exception("Could not find oxygen")
 
 
 def calculate_scrubber(data):
