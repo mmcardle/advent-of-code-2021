@@ -1,11 +1,9 @@
 
-from functools import lru_cache
 from typing import List
 
 
-@lru_cache(maxsize=None)
 def pascals_triangle(n: int):
-    return sum(list(range(1, n + 1)))
+    return (n**2 + n) / 2
 
 
 def sum_diff_list(val: int, lst: List):
@@ -32,5 +30,5 @@ def test_day_real_input():
 def test_pascals_triangle():
     assert pascals_triangle(1) == 1
     assert pascals_triangle(5) == 15
-    assert pascals_triangle(11) == 66
     assert pascals_triangle(9) == 45
+    assert pascals_triangle(11) == 66
