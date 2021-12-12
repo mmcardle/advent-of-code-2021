@@ -135,11 +135,10 @@ def test_day4_short_input():
     print("winning_number", winning_number)
     print(winning_board)
     print(winning_board.winning_score())
-    assert False
 
 
 def test_day4_real_input():
-    test_input = open("day4_input").read()
+    test_input = open("../advent-of-code-2021/day4_input").read()
     bingo = process_instructions(test_input)
     winning_board, winning_number = bingo.play()
     score = winning_board.winning_score() * winning_number
@@ -150,4 +149,3 @@ def test_day4_real_input():
     print("winning_number", winning_number)
     print(winning_board)
     print(winning_board.winning_score())
-    assert False
