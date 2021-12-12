@@ -1,8 +1,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
-from pprint import pp
-from typing import Counter
+from typing import Counter, Dict
 
 
 @dataclass
@@ -23,63 +22,73 @@ def red(t):
     return Colours.wrap(Colours.red, t)
 
 
-def find_all_paths(graph, start, end, path=[], depth=0):
-    if depth > 100:
-        raise Exception("Depth too deep")
-    d = "----" * depth
+def flatten(l):
+    return [item for sublist in l for item in sublist]
 
-    path = path + [start]
-    if start == end:
-        return [path]
-    
-    if not start in graph:
-        return []
-    
-    paths = []
-    for node in graph[start]:
 
-        big_cave = node.isupper()
+@dataclass
+class Cave:
+    nodes: Dict
+    small_cave_single_visit_limit = 2
+    small_cave_multiple_visit_limit = 1
 
-        if big_cave:
-            can_traverse = True
-        elif node == "start":
-            can_traverse = False
+    @classmethod
+    def from_definition(cls, lines):
+        graph = defaultdict(list)
+        for line in lines:
+            a, b = line.split("-")
+            if b != "start":
+                graph[a].append(b)
+            if b != "end":
+                graph[b].append(a)
+        return cls(graph)
+
+    @staticmethod
+    def is_big_cave(node):
+        return node.isupper()
+
+    @staticmethod
+    def is_small_cave(node):
+        return node.islower() and node != "start"
+
+    def small_caves_in_path(self, path):
+        return filter(Cave.is_small_cave, path)
+
+    def can_traverse(self, node, path):
+        if node == "start":
+            return False
+        elif Cave.is_big_cave(node):
+            return True
         else:
-            small_counter = Counter([n for n in path if n.islower() and n != "start"])
-            visited_caves = small_counter[node]
-            if 2 in small_counter.values():
-                can_traverse = visited_caves < 1
+            counter = Counter(self.small_caves_in_path(path))
+            visited_caves = counter[node]
+            if self.small_cave_single_visit_limit in counter.values():
+                return visited_caves < self.small_cave_multiple_visit_limit
             else:
-                can_traverse = visited_caves < 2
+                return visited_caves < self.small_cave_single_visit_limit
 
-            #print(d, "Visits", small_counter, "this count", visited_caves, "can traverse", can_traverse)
+    def find_all_paths(self, start, end, path=[], depth=0):
+        
+        path = path + [start]
+        if start == end:
+            return [path]
 
-        if can_traverse:
-            #print(f"{d} OK {start} to {node} {node.upper() == node} : node={node} : {path}")
-            newpaths = find_all_paths(graph, node, end, path, depth=depth+1)
-            for newpath in newpaths:
-                paths.append(newpath)
-        else:
-            pass#print(red(f"{d} XXXXX not going from {start} to {node} {node.upper() == node}: node={node} : {path}"))
-    return paths
+        paths = [
+            self.find_all_paths(node, end, path, depth + 1)
+            for node in self.nodes[start]
+            if self.can_traverse(node, path)
+        ]
+        
+        return flatten(paths)
 
 
 def process_instructions(test_data):
 
     test_data = [td for td in test_data.split("\n") if td]
 
-    graph = defaultdict(list)
-    for line in test_data:
-        a, b = line.split("-")
-        if b != "start":
-            graph[a].append(b)
-        if b != "end":
-            graph[b].append(a)
+    cave = Cave.from_definition(test_data)
 
-    from pprint import pprint
-    pprint(graph)
-
-    paths = find_all_paths(graph, "start", "end")
+    paths = cave.find_all_paths("start", "end")
 
     for path in paths:
         print("ALL", path)
