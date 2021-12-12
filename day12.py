@@ -91,7 +91,7 @@ def process_instructions(test_data):
     paths = cave.find_all_paths("start", "end")
 
     for path in paths:
-        print("ALL", path)
+        print("Found Path", path)
 
     return len(paths)
 
