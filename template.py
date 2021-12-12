@@ -19,10 +19,10 @@ def test_day_short_input():
 XXXX
 """
     result = process_instructions(test_instructions)
-    assert result is 99999
+    assert result == 99999
 
 
 def test_day_real_input():
     test_instructions = open("day3_input").read()
     result = process_instructions(test_instructions)
-    assert result is 99999
+    assert result == 99999
