@@ -1,89 +1,66 @@
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass
 from pprint import pp
-from typing import List
-from itertools import permutations
+from typing import Counter
 
 
 @dataclass
-class Node:
-    start: str
-    end: str
+class Colours:
+    green = "\033[92m"
+    red = "\033[91m"
+    endc = "\033[0m"
 
-    def next_nodes(self, nodes):
-        return list(filter(lambda n: self.end == n.start, nodes))
+    @classmethod
+    def wrap(cls, color, text):
+        return color + text + cls.endc
+
+def green(t):
+    return Colours.wrap(Colours.green, t)
 
 
-def flatten(l):
-    return [item for sublist in l for item in sublist]
+def red(t):
+    return Colours.wrap(Colours.red, t)
 
-@dataclass
-class Cave:
-    nodes: List[Node]
-
-    def print(self):
-        for node in self.nodes:
-            print(f"{node.start} -> {node.end}")
-
-    def traverse(self, node_name):
-        nexts = list(filter(lambda n: n.start == node_name, self.nodes))
-
-        print(f"Traversing... {node_name} -> {nexts}")
-        if node_name == "end":
-            return [node_name]
-
-        paths = []
-        for next_node in nexts:
-            further_path = self.traverse(next_node.end)
-            print(f"Processing NEXT with {next_node} -> {further_path}")
-            if further_path == ["end"]:
-                pass
-            else:
-                paths.append([node_name] + flatten(further_path))
-        
-        return paths
-
-# Code by Eryk Kopczyński
-def find_shortest_path(graph, start, end, path=[], depth=0):
-    path = path + [start]
-    if start == end:
-        return path
-    if start not in graph :
-        return None
-    shortest = None
-    for node in graph[start]:
-        if node not in path:
-            newpath = find_shortest_path(graph, node, end, path, depth=depth+1)
-            if newpath:
-                if not shortest or len(newpath) < len(shortest):
-                    shortest = newpath
-    return shortest
 
 def find_all_paths(graph, start, end, path=[], depth=0):
     if depth > 100:
         raise Exception("Depth too deep")
     d = "----" * depth
 
-    #print(f"{d} from {start} to {end}")
     path = path + [start]
     if start == end:
         return [path]
-    #if end == "end":
-    #    return [path]
+    
     if not start in graph:
         return []
+    
     paths = []
     for node in graph[start]:
-        #if node not in path:
-        can_traverse = node.upper() == node or node not in path
+
+        big_cave = node.isupper()
+
+        if big_cave:
+            can_traverse = True
+        elif node == "start":
+            can_traverse = False
+        else:
+            small_counter = Counter([n for n in path if n.islower() and n != "start"])
+            visited_caves = small_counter[node]
+            if 2 in small_counter.values():
+                can_traverse = visited_caves < 1
+            else:
+                can_traverse = visited_caves < 2
+
+            #print(d, "Visits", small_counter, "this count", visited_caves, "can traverse", can_traverse)
+
         if can_traverse:
-            print(f"{d} OK {start} to {node} {node.upper() == node} : node={node} : {path}")
+            #print(f"{d} OK {start} to {node} {node.upper() == node} : node={node} : {path}")
             newpaths = find_all_paths(graph, node, end, path, depth=depth+1)
             for newpath in newpaths:
                 paths.append(newpath)
         else:
-            print(f"{d} XXXXX not going from {start} to {node} {node.upper() == node}: node={node} : {path}")
+            pass#print(red(f"{d} XXXXX not going from {start} to {node} {node.upper() == node}: node={node} : {path}"))
     return paths
 
 
@@ -102,27 +79,12 @@ def process_instructions(test_data):
     from pprint import pprint
     pprint(graph)
 
-    shortest = find_shortest_path(graph, "start", "end")
-
-    print("Shortest", shortest)
-
     paths = find_all_paths(graph, "start", "end")
 
     for path in paths:
         print("ALL", path)
 
     return len(paths)
-
-    cave = Cave([])
-
-    cave.print()
-    print("xxx")
-
-    #paths = cave.traverse("start")
-    #for p in paths:
-    #    print(p)
-
-    return -1
 
 
 def test_day_short1_input():
@@ -136,7 +98,7 @@ A-end
 b-end
 """
     result = process_instructions(test_instructions)
-    assert result == 10
+    assert result == 36
 
 def test_day_short2_input():
     test_instructions = """
@@ -152,7 +114,7 @@ kj-HN
 kj-dc
 """
     result = process_instructions(test_instructions)
-    assert result == 19
+    assert result == 103
 
 def test_day_short3_input():
     test_instructions = """
@@ -176,9 +138,9 @@ pj-fs
 start-RW
 """
     result = process_instructions(test_instructions)
-    assert result == 226
+    assert result == 3509
 
 def test_day_real_input():
     test_instructions = open("day12_input").read()
     result = process_instructions(test_instructions)
-    assert result == 3230
+    assert result == 83475
