@@ -1,10 +1,90 @@
 
 from dataclasses import dataclass
 from collections import deque
-from typing import Counter
-
+from math import perm
+from typing import Counter, List
+import concurrent.futures
+import sys
+from itertools import permutations
 
 from multiprocessing import Pool
+
+@dataclass
+class Node:
+    c: str
+    next: 'Node' = None
+    count: int = 1
+
+    def __str__(self):
+        return f'{self.c}({self.count})'
+
+    def __repr__(self) -> str:
+        return f'{self}'
+
+    def recursive(self):
+        x = self.c
+        next1 = self.next
+        while next1 is not None:
+            x += next1.c
+            next1 = next1.next
+        return x
+
+    def check_yerself(self, insertions):
+        if self.next is None:
+            return []
+        
+        for insertion in insertions:
+            if insertion[0][0] == self.c and insertion[0][1] == self.next.c:
+                #print(f'Comparing {self.c}{self.next.c} -> FOUND {insertion}')
+                return (self, insertion[1])
+
+        return []
+
+    def insert_yerself(self, c):
+        new_node = Node(c, next=self.next)
+        self.next = new_node
+        return new_node
+
+    def next_node(self):
+        return self.next
+
+
+def process2(polymer, insertions, iterations):
+    print("Polymer", polymer)
+   
+    print([x for x in reversed(polymer)])
+    next = None
+    for x in reversed(polymer):
+        n = Node(x[0], next)
+        next = n
+    
+    first = next
+    node = next
+    print("First", first, first.next, first.next.next, first.next.next.next, first.next.next.next.next)
+
+    for i in range(1, iterations + 1):
+        new_insertions = deque()
+        while next_one := node.next_node():
+            new_ones = node.check_yerself(insertions)
+            new_insertions.append(new_ones)
+            node = next_one
+
+        for new_ones in new_insertions:
+            node2, c = new_ones
+            node2.insert_yerself(c)
+
+        inter_result = first.recursive()
+        print(f"After {i}:", Counter(inter_result))
+
+        node = first
+    
+    result = first.recursive()
+    #print("Result", result)
+    counter = Counter(result)
+    ordered_counter = sorted(counter.values(), key=lambda x: x, reverse=True)
+    diff = ordered_counter[0] - ordered_counter[-1]
+    print(diff)
+    return diff
 
 
 def func(pair, polymer_zip):
@@ -24,116 +104,26 @@ def func(pair, polymer_zip):
             )
     return new_insertions
 
-
-def process(polymer_zip, insertions):
-
-    pool = Pool(processes=8)
-    results = [pool.apply(func, args=(pair, polymer_zip)) for pair in insertions]
-
+def process(pool, polymer_zip, insertions):
+    results = []
+    future_to_url = {pool.submit(func, pair, polymer_zip): pair for pair in insertions}
+    for future in concurrent.futures.as_completed(future_to_url):
+        results.append(future.result())
     for new_insertions in results:
         for insertion in new_insertions:
             #print(insertion)
             polymer_zip[insertion[0]] = insertion[1]
             polymer_zip.insert(insertion[0] + 1, insertion[2])
-
-            # Works with delete
-            #del polymer_zip[insertion[0]]
-            #polymer_zip.insert(insertion[0], insertion[1])
-            #polymer_zip.insert(insertion[0] + 1, insertion[2])
-
-    return polymer_zip
-
-    #print(f"\n\nPolymer = {polymer_zip}")
-
-    new_insertions = deque()
-    
-    with Pool() as pool:
-        for pair in insertions:
-
-            duo, ch = pair
-            #print(f"{duo} -> {ch}")
-            duo_tuple = tuple(duo)
-
-            for i, x in enumerate(polymer_zip):
-                if x == duo_tuple:
-                    #print(f"Found {i} {duo_tuple}")
-                    new_insertions.append(
-                        (i,
-                            (polymer_zip[i][0], ch),
-                            (ch, polymer_zip[i][1])
-                        )
-                    )
-
-                #polymer_zip[i] = (polymer_zip[i][0], ch, polymer_zip[i][1])
-
-    #print("X1", polymer_zip)
-
-    for insertion in new_insertions:
-        #print(insertion)
-        del polymer_zip[insertion[0]]
-        #print("X1 -- ", polymer_zip)
-        polymer_zip.insert(insertion[0], insertion[1])
-        #print("X1 -- ", polymer_zip)
-        polymer_zip.insert(insertion[0] + 1, insertion[2])
-        #print("X1 -- ", polymer_zip)
-
-    #for i, p in enumerate(polymer_zip):
-    #    if len(p) == 3:
-    #        polymer_zip[i] = (p[0], p[1])
-    #        polymer_zip.insert(i + 1, (p[1], p[2]))
-
-    #print("X2", polymer_zip)
-    
     return polymer_zip
 
 
-    new_polymer = [
-        x[:-1] if i < len(polymer_zip) -1 else x
-        for i, x in enumerate(polymer_zip)
-    ]
-    print("New Polymer = ", new_polymer)
-    
-    result = ""
-    for x in new_polymer:
-        result += "".join(x)
-    
-    print(f"Result = {result}")
-    new_polymer_zip = deque(list(zip(result, result[1:])))
-
-    print(f"New polymer zip = {new_polymer_zip}")
-    return new_polymer_zip
-
-    result = ""
-    #print(result)
-    #return result
-
-
-
-def process_instructions(test_data, interations=1):
+def process_instructions(test_data, iterations=1):
 
     test_data = [td for td in test_data.split("\n") if td]
     polymer = test_data[0]
     insertions = [c.split(" -> ") for c in test_data[1:] if c]
 
-    polymer_zip = deque(list(zip(polymer, polymer[1:])))
-
-    for i in range(0, interations):
-        print(i, len(polymer_zip))
-        polymer_zip = process(polymer_zip, insertions)
-
-    new_polymer = [
-        x[:-1] if i < len(polymer_zip) -1 else x
-        for i, x in enumerate(polymer_zip)
-    ]
-    #print("Result Polymer = ", new_polymer)
-    
-    result = ""
-    for x in new_polymer:
-        result += "".join(x)
-
-    #print("result = ", result)
-    
-    return result
+    return process2(polymer, insertions, iterations)
 
 
 
@@ -158,48 +148,18 @@ CC -> N
 CN -> C
 """
 
-def test_day_xxx_input():
-    result = process_instructions(test_instructions, 2)
-    assert len(result) == 13
-    c = Counter(result)
-
 
 def test_day_short_input2():
+    assert process_instructions(test_instructions, 10) == 1588
+    #process_instructions(test_instructions, 40)
 
-    result = process_instructions(test_instructions, 10)
-    #assert len(result) == 3073
-    #c = Counter(result)
-    #print(c)
-    #vals = list(c.values())
-    #print(vals)
-    #assert vals[0] - vals[-1] == 704
 
-    result = process_instructions(test_instructions, 20)
-    #assert len(result) == 196609, len(result)
-    #c = Counter(result)
-    #vals = list(c.values())
-    #assert vals[0] - vals[-1] == 704
+def test_day_real_input(filename):
+    test_instructions = open(filename).read()
+    process_instructions(test_instructions, 10)
+    process_instructions(test_instructions, 40)
 
 
 if __name__ == "__main__":
     test_day_short_input2()
-
-
-def test_day_real_input():
-    test_instructions = open("day14_input").read()
-    result = process_instructions(test_instructions, 10)
-    assert len(result) == 19457
-    c = Counter(result)
-    print(c)
-    vals = list(c.values())
-    print(vals)
-    assert vals[0] - vals[-1] == 2509
-
-    test_instructions = open("day14_input").read()
-    result = process_instructions(test_instructions, 10)
-    assert len(result) == 19457
-    c = Counter(result)
-    print(c)
-    vals = list(c.values())
-    print(vals)
-    assert vals[0] - vals[-1] == 2509
+    #test_day_real_input(sys.argv[1])
