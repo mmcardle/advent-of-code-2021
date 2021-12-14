@@ -52,6 +52,10 @@ class Node:
 def process2(polymer, insertions, iterations):
     print("Polymer", polymer)
    
+    import pdb; pdb.set_trace()
+
+    
+
     print([x for x in reversed(polymer)])
     next = None
     for x in reversed(polymer):
