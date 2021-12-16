@@ -1,10 +1,7 @@
 
-from functools import partial
 from typing import List
 from dataclasses import dataclass
 from collections import defaultdict
-from multiprocessing import Pool
-import concurrent.futures
 import networkx as nx
 
 
@@ -98,102 +95,31 @@ class Grid:
                     routes[(i, j)] = []
         return routes
 
-    def graph_list(self):
-        routes = []
-        for i, row in enumerate(self.rows):
-            for j, val in enumerate(row):
-                neighbours = self.get_neighbours(i, j)
-                if neighbours:
-                    for neighbour in neighbours:
-                        neighbour_val = self.rows[neighbour[0]][neighbour[1]]
-                        routes.append(((i, j), (neighbour[0], neighbour[1]), neighbour_val))
-                else:
-                    routes.append(((i, j), None, None))
-        return routes
-
-
-def depthFirst(graph, currentVertex, test_data):
-    vertexes = graph[currentVertex]
-    if not vertexes:
-        yield [currentVertex]
-    for vertex in vertexes:
-        for next_path in depthFirst(graph, vertex, test_data):
-            result = [currentVertex] + next_path
-            #print(result[0], result[1])
-            s = sum(test_data[i][j] for i, j in result)
-            if s < currentMin:
-                currentMin = s
-            yield result
-
-
-def do_depth_first_search(graph, test_data):
-    outer = 0
-    for path in depthFirst(graph, (0, 0), test_data):
-        if outer > 100000000:
-            break
-        else: 
-            yield path
-        outer += 1
-
 def process(test_data):
 
     grid = Grid(test_data)
     print(grid)
-    graph = grid.graph()
 
-    G = nx.Graph()
+    graph = nx.Graph()
 
     for i, row in enumerate(test_data):
         for j, val in enumerate(row):
             loc = (i, j)
-            G.add_node(loc)
+            graph.add_node(loc)
             neightbours = grid.get_neighbours(*loc)
             for n in neightbours:
-                G.add_edge(loc, n, weight=test_data[n[0]][n[1]])
+                graph.add_edge(loc, n, weight=test_data[n[0]][n[1]])
 
     start = (0, 0)
     end = (len(test_data) - 1, len(test_data[0]) - 1)
-    sp = nx.shortest_path(G, start, end, "weight", method='bellman-ford')
+    sp = nx.shortest_path(graph, start, end, "weight", method='bellman-ford')
     print(grid.with_path(sp))
 
     risks = [test_data[i][j] for i, j in sp if (i, j) != (0, 0)]
-    #print(risks, sum(risks))
 
-    #all_shortest_paths = nx.all_shortest_paths(G, start, end, "weight")
-    #for p in list(all_shortest_paths)[0:3]:
-    #    risks = [test_data[i][j] for i, j in p if (i, j) != (0, 0)]
-    #    print("TOP 3", sum(risks))
-    #    print(grid.with_path(p))
-
-    shortest = nx.shortest_path_length(G, start, end, "weight")
-    print("SHORTEST", "algo=",shortest, "mycalc=",sum(risks))
+    shortest = nx.shortest_path_length(graph, start, end, "weight")
+    print("SHORTEST", "algo=",shortest, "without first=",sum(risks))
     return sum(risks)
-
-    risks = [100000000000000]
-    lowests = defaultdict(list)
-    for v in do_depth_first_search(graph, test_data):
-        risk_scores= [test_data[i][j] for i, j in v]
-        risk = sum(risk_scores[1:])
-        #print(green("NEW RISK"), risk, bool(risks), min(risks), risk < min(risks))
-        if risks and risk < min(risks):
-            print(red("NEW LOWEST"), risk)
-            currentMin = risk
-        risks.append(risk)
-        lowests[risk].append(v)
-
-    print("DEPTH COMPLETE")
-
-    min_risk = min(risks)
-    print(f"Min risk: {min_risk}")
-    print("Boards with low", len(lowests[min_risk]))
-    #for lowest in lowests[min_risk]:
-    #    print(grid.with_path(lowest))
-    print(grid.with_path(lowests[min_risk][0]))
-    print("RISK", min_risk )
-
-    return min(risks)
-
-
 
 def process_instructions(test_data):
     test_data = [td for td in test_data.split("\n") if td]

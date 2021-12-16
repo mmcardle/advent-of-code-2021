@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from collections import deque
 from typing import Counter, Dict
+from functools import lru_cache
 
 
 from multiprocessing import Pool
@@ -19,16 +20,27 @@ class PolymerCacheKey():
     def __hash__(self):
         return hash(self.polymer) + hash(self.steps)
 
+    def __gt__(self, other):
+        return self.polymer > other.polymer
 
-def getCharCountsIter(polymerPair: str, pairInsertionRules: Dict, steps: int, polymerCache: Dict):
+
+class HashableDict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+
+#@lru_cache(maxsize=None)
+def getCharCountsIter(polymerPair: str, pairInsertionRules: HashableDict, steps: int, polymerCache: HashableDict):
     
-    charCount = {}
+    polymer_cache_key = PolymerCacheKey(polymerPair, steps)
+
+    charCount = HashableDict({})
     if steps == 0:
         #print("XXX0")
         charCount[polymerPair[1]] = charCount.get(polymerPair[1], 0) + 1
-    elif PolymerCacheKey(polymerPair, steps) in polymerCache:
+    elif polymer_cache_key in polymerCache:
         #print("XXX1")
-        charCount = polymerCache.get(PolymerCacheKey(polymerPair, steps))
+        charCount = polymerCache.get(polymer_cache_key)
     elif polymerPair not in pairInsertionRules:
         #print("XXX2")
         charCount[polymerPair[1]] = charCount.get(polymerPair[1], 0) + 1
@@ -40,13 +52,13 @@ def getCharCountsIter(polymerPair: str, pairInsertionRules: Dict, steps: int, po
             for character in nextCharCount.keys():
                 charCount[character] = charCount.get(character, 0) + nextCharCount.get(character)
 
-    polymerCache[PolymerCacheKey(polymerPair, steps)] = charCount
+    polymerCache[polymer_cache_key] = charCount
 
     return charCount
 
 
 def getCharCounts(polymer: str, pairInsertionRules: Dict, steps: int):
-    polymerCache = {}
+    polymerCache = HashableDict({})
     charCount = {}
     
     charCount[polymer[0]] = 1
@@ -66,7 +78,7 @@ def process_instructions(test_data, interations=1):
 
     test_data = [td for td in test_data.split("\n") if td]
     polymer = test_data[0]
-    insertions = {}
+    insertions = HashableDict({})
     for i in test_data[1:]:
         pair, c = i.split(" -> ")
         insertions[pair] = c
@@ -114,7 +126,7 @@ def test_day_short_input2():
 
 
 def test_day_real_input():
-    test_instructions = open("day14_input").read()
+    test_instructions = open("day14_input_viper").read()
     result = process_instructions(test_instructions, 40)
 
 
