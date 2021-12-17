@@ -37,18 +37,18 @@ class Grid:
     def __str__(self):
         output = f"BOARD\n"
         output += "- "
-        output += " ".join([
+        output += "".join([
             format(x, color=Colours.blue)
             for x in range(len(self.rows[0]))]
         ) + "\n"
         for i, row in enumerate(self.rows):
             output += format(i, color=Colours.blue) + " "
-            output += " ".join(format(x) for x in row) + "\n"
+            output += "".join(format(x) for x in row) + "\n"
         return output
 
     def with_path(self, paths):
         output = f"BOARD\n"
-        output += "- "
+        output += " - "
         output += "".join([
             format(x, color=Colours.blue)
             for x in range(len(self.rows[0]))]
@@ -71,9 +71,9 @@ class Grid:
         points_around = [
             self.add_points((i, j), p) for p in [
                 (0, 1),
-                (-1, 0),
                 (1, 0),
                 (0, -1),
+                (-1, 0),
             ]
         ]
 
@@ -105,19 +105,15 @@ def process(test_data):
     grid = Grid(test_data)
     print(grid)
 
-    graph = nx.Graph()
+    graph = nx.DiGraph()
 
     for i, row in enumerate(test_data):
         for j, val in enumerate(row):
             loc = (i, j)
             neightbours = grid.get_neighbours(*loc)
-            if loc == (0, 0):
-                graph.add_node(loc, weight=0)
-            else:
-                graph.add_node(loc, weight=val)
+            graph.add_node(loc)
             for n in neightbours:
-                #graph.add_edge(loc, n, weight=test_data[n[0]][n[1]])
-                graph.add_edge(loc, n, weight=val)
+                graph.add_edge(loc, n, weight=test_data[n[0]][n[1]])
 
     start = (0, 0)
     end = (len(test_data) - 1, len(test_data[0]) - 1)
@@ -126,31 +122,9 @@ def process(test_data):
     print(grid.with_path(sp))
 
     risks = [test_data[i][j] for i, j in sp if (i, j) != (0, 0)]
-    #print(risks)
 
     print("shortest_path", sum(risks))
-    all_risks = []
-    #print(len(all_p))
-    #lowest = None
-    #lowest_path = None
-    #i = 0
-    #for i, p in enumerate(nx.all_shortest_paths(graph, start, end, "weight")):
-    #    if i % 10000 == 0:
-    #        print("testing", i)
-    #    risks = [test_data[i][j] for i, j in p if (i, j) != (0, 0)]
-    #    risk = sum(risks)
-    #    if lowest is None or risk < lowest:
-    #        lowest = risk
-    #        lowest_path = p
-    #    #all_risks.append()
-    #    #print(grid.with_path(p))
-    ##print(all_risks)
-    #print("Lowest", lowest)
-    #print(grid.with_path(lowest_path))
-    #return lowest
 
-    #shortest = nx.shortest_path_length(graph, start, end, "weight")
-    #print("SHORTEST", "algo=",shortest, "without first=",sum(risks), "min of all", min(all_risks))
     return sum(risks)
 
 def process_instructions(test_data):
@@ -189,7 +163,7 @@ def test_day_very_short_input():
 def test_day_real_input():
     test_instructions = open("day15_input").read()
     result = process_instructions(test_instructions)
-    assert result == 628, result
+    assert result == 621, result
 
 if __name__ == "__main__":
     #test_day_very_short_input()
