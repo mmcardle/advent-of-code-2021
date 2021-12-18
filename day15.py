@@ -236,8 +236,24 @@ def tester():
     get_shortest(previous_nodes, shortest_path, start_node="Reykjavik", target_node="Belgrade")
 
 
-def process(test_data):
-    #tester()
+def process(init_test_data, n = 1):
+
+    print(Grid(init_test_data))
+    extended_cols = []
+    for row in init_test_data:
+        print(row)
+        long_row = []
+        for i in range(n):
+            long_row.extend([v + i for v in row])
+        long_row = [v - 9 if v > 9 else v for v in long_row]
+        extended_cols.append(long_row)
+
+    test_data = []
+    for i in range(n):
+        for long_row in extended_cols:
+            long_row = [v + i for v in long_row]
+            long_row = [v-9 if v > 9 else v for v in long_row]
+            test_data.append(long_row)
 
     grid = Grid(test_data)
     print(grid)
@@ -255,6 +271,7 @@ def process(test_data):
     graph = Graph(nodes, init_graph)
     start_node = (0, 0)
     end_node = (len(test_data) - 1, len(test_data[0]) - 1)
+    print(start_node, end_node)
     previous_nodes, shortest_path = dijkstra_algorithm(graph=graph, start_node=start_node)
 
     shortest, path = get_shortest(previous_nodes, shortest_path, start_node=start_node, target_node=end_node)
@@ -266,10 +283,10 @@ def process(test_data):
 
     return sum(risks)
 
-def process_instructions(test_data):
+def process_instructions(test_data, n=1):
     test_data = [td for td in test_data.split("\n") if td]
     test_data = [[int(t) for t in td] for td in test_data if td]
-    return process(test_data)
+    return process(test_data, n=n)
 
 
 def test_day_short_input():
@@ -285,8 +302,8 @@ def test_day_short_input():
 1293138521
 2311944581
 """
-    result = process_instructions(test_instructions)
-    assert result == 40
+    result = process_instructions(test_instructions, n = 5)
+    assert result == 315
 
 def test_day_very_short_input():
     test_instructions = """
@@ -295,14 +312,15 @@ def test_day_very_short_input():
 21367
 36942
 """
-    result = process_instructions(test_instructions)
+    result = process_instructions(test_instructions, n = 5)
     assert result == 19
-
 
 def test_day_real_input():
     test_instructions = open("day15_input").read()
     result = process_instructions(test_instructions)
     assert result == 621, result
+    result = process_instructions(test_instructions, n = 5)
+    assert result == 1025
 
 if __name__ == "__main__":
     #test_day_very_short_input()

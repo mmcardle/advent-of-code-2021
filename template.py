@@ -26,3 +26,7 @@ def test_day_real_input():
     test_instructions = open("day3_input").read()
     result = process_instructions(test_instructions)
     assert result == 99999
+
+if __name__ == "__main__":
+    test_day_short_input()
+    #test_day_real_input()
