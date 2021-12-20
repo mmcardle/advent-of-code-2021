@@ -161,7 +161,7 @@ def test_day_very_short_input():
 
 
 def test_day_real_input():
-    test_instructions = open("day15_input").read()
+    test_instructions = open("day15_input_viper").read()
     result = process_instructions(test_instructions)
     assert result == 621, result
 
