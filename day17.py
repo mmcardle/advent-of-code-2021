@@ -20,19 +20,22 @@ def x_position(initial_position, initial_velocity, time):
 
 @lru_cache
 def y_position(initial_position, initial_velocity, time, acc=-1):
-    pos = initial_position
+    final_position = initial_position
     vel = initial_velocity
     for _ in range(time, 0, -1):
-        pos += vel
+        final_position += vel
         vel += acc
-    return pos
+    return final_position
+
+
+Position = namedtuple("Position", ["x", "y"])
 
 
 def position_after_t_seconds(initial_position, velocity_x, velocity_y, t):
-    return {
-        "x": x_position(initial_position, velocity_x, t),
-        "y": y_position(initial_position, velocity_y, t),
-    }
+    return Position(
+        x_position(initial_position, velocity_x, t),
+        y_position(initial_position, velocity_y, t),
+    )
 
 
 @dataclass
@@ -44,7 +47,7 @@ class Target:
 
     def hit_by_after(self, iv, xv, yv, t):
         pos = position_after_t_seconds(iv, xv, yv, t)
-        return self.in_side_x(pos["x"]) and self.in_side_y(pos["y"])
+        return self.in_side_x(pos.x) and self.in_side_y(pos.y)
 
     #@lru_cache
     def in_side_x(self, x):
@@ -79,11 +82,10 @@ def flatten(l):
     return [item for sublist in l for item in sublist]
 
 
-def solve(target: Target):
+def solve(target: Target, vmax=500):
 
     print(target)
 
-    vmax = 400
     velocity_combinations = []
     for iv in range(-vmax, vmax):
         for iy in range(-vmax, vmax):
@@ -100,7 +102,7 @@ def solve(target: Target):
     return max_height, velocities
 
 
-def process_instructions(test_data):
+def process_instructions(test_data, vmax=100):
 
     x_data, y_data = test_data.split(", ")
     x_data = x_data[2:].split("..")
@@ -110,7 +112,7 @@ def process_instructions(test_data):
     y1, y2 = int(y_data[0]), int(y_data[1])
 
     target = Target(x1, x2, y1, y2)
-    return solve(target)
+    return solve(target, vmax=vmax)
 
 
 def max_height_after(times, i, iv, iy):
@@ -118,17 +120,17 @@ def max_height_after(times, i, iv, iy):
     for hit_time in times:
         for t in range(0, hit_time):
             pos = position_after_t_seconds(i, iv, iy, t)
-            heights.append(pos["y"])
+            heights.append(pos.y)
     return max(heights)
 
 
-def times_target_is_hit(target, iv, vx, vy, tmax=500):
+def times_target_is_hit(target: Target, iv, vx, vy, time_max=100):
     times = []
     has_been_hit = None
-    for t in range(0, tmax):
-        hit = target.hit_by_after(iv, vx, vy, t)
+    for time in range(0, time_max):
+        hit = target.hit_by_after(iv, vx, vy, time)
         if hit:
-            times.append(t)
+            times.append(time)
             has_been_hit = True
         else:
             if has_been_hit is True:
@@ -203,7 +205,7 @@ def test_day_short_input4():
 
 def test_day_short_input_test():
     test_instructions = "x=20..30, y=-10..-5"
-    height, velocities = process_instructions(test_instructions)
+    height, velocities = process_instructions(test_instructions, vmax=40)
     assert height == 45
     assert len(velocities) == 112
 
